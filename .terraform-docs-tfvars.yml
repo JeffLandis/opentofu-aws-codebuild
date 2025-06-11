@@ -1,0 +1,10 @@
+formatter: "tfvars hcl"
+
+sort:
+  enabled: false
+
+output:
+  file: "terraform.tfvars"
+
+  settings:
+    color: true
