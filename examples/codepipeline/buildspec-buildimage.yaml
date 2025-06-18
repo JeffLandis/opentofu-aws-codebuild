@@ -1,0 +1,33 @@
+version: 0.2
+
+env:
+  git-credential-helper: yes
+phases:
+  install:
+    on-failure: ABORT
+    runtime-versions:
+      python: 3.11
+  pre_build:
+    on-failure: ABORT
+    commands:
+      - '[[ -z $GIT_TAG ]] && image_tag=$IMAGE_TAG_DEFAULT || image_tag=$GIT_TAG'
+      - echo "GIT_TAG = [ $GIT_TAG ]"
+      - echo "GIT_COMMIT_ID = [ $GIT_COMMIT_ID ]"
+      - echo "image_tag = [ $image_tag ]"
+      - git status
+      - git log | head -19
+      - aws sts get-caller-identity
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $ECR_REGION | docker login --username AWS --password-stdin $ECR_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com
+  build:
+    on-failure: ABORT
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image $ECR_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com/$ECR_REPO_NAME:$image_tag
+      - docker build -t $ECR_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com/$ECR_REPO_NAME:$image_tag .
+  post_build:
+    on-failure: ABORT
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image $ECR_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com/$ECR_REPO_NAME:$image_tag
+      - docker push $ECR_ACCOUNT_ID.dkr.ecr.$ECR_REGION.amazonaws.com/$ECR_REPO_NAME:$image_tag
